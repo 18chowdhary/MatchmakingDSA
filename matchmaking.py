@@ -10,8 +10,8 @@ def create_validation_graph():
     validation_subset = validation_subset.head(200)
 
     G = nx.DiGraph()
-    G.add_nodes_from(range(1, 11), bipartite=0, color="red")
-    G.add_nodes_from(range(11, 21), bipartite=1, color="blue")
+    G.add_nodes_from(range(1, 11), bipartite=0)
+    G.add_nodes_from(range(11, 21), bipartite=1)
 
     for index, row in validation_subset.iterrows():
         if (row['dec'] == 1):
@@ -25,23 +25,45 @@ def create_test_graph():
     test_subset = test_subset.head(200)
 
     G = nx.DiGraph()
-    for i in range(1, 21):
-        G.add_node(i)
+    G.add_nodes_from(range(1, 11), bipartite=0)
+    G.add_nodes_from(range(11, 21), bipartite=1)
 
     for index, row in test_subset.iterrows():
         if (math.isnan(row['prob'])):
             cost = 5
         else:
             cost = int(row['prob'])
-        G.add_edge(row['iid'], row['pid'], weight=cost)
+        if cost <= 5:
+            color = "g"
+        else:
+            color = "o"
+        G.add_edge(row['iid'], row['pid'], weight=cost, edge_color=color)
+
+    print(nx.adjacency_matrix(G))
 
     return G
 
 def hungarian_algorithm(G):
+    # create adjacency matrix using numpy
+    # find the minimum of each row & subtract that min from each row
+    # find the min of each col & subtract from each col
+    # check if all rows and all columns have at least 1 0
+    # if no, return to first
+    # otherwise, find the matchings so that only one selection per row & column
     pass
 
 def draw_graph(G):
-    nx.draw(G, with_labels=True)
+    male, female = bipartite.sets(G)
+    pos = dict()
+    pos.update((n, (1, i)) for i, n in enumerate(male))
+    pos.update((n, (2, i)) for i, n in enumerate(female))
+    color_map = []
+    for node in G:
+        if node <= 10:
+            color_map.append('pink')
+        else:
+            color_map.append('blue')
+    nx.draw(G, node_color=color_map, with_labels=True, pos=pos)
     plt.show()
 
 def get_true_matches(g):
@@ -58,5 +80,5 @@ def get_true_matches(g):
 if __name__ == '__main__':
     val_graph = create_validation_graph()
     test_graph = create_test_graph()
-    draw_graph(val_graph)
+    # draw_graph(test_graph)
     val_matches = get_true_matches(val_graph)
