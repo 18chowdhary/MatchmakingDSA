@@ -1,6 +1,7 @@
 import pandas as pd
 import networkx as nx
 import matplotlib.pyplot as plt
+import math
 
 def create_validation_graph():
     data = pd.read_csv("speeddating.csv", encoding="utf-8")
@@ -14,26 +15,44 @@ def create_validation_graph():
     for index, row in validation_subset.iterrows():
         if (row['dec'] == 1):
             G.add_edge(row['iid'], row['pid'])
-        # print(row['iid'], row['pid'], row['dec'])
-
-    # nx.draw(G, with_labels=True)
-    # plt.show()
 
     return G
-def is_match(g):
+
+def create_test_graph():
+    data = pd.read_csv("speeddating.csv", encoding="utf-8")
+    test_subset = data[['iid', 'pid', 'prob']]
+    test_subset = test_subset.head(200)
+
+    G = nx.DiGraph()
+    for i in range(1, 21):
+        G.add_node(i)
+
+    for index, row in test_subset.iterrows():
+        if (math.isnan(row['prob'])):
+            cost = 10
+        else:
+            cost = 10 - int(row['prob'])
+        G.add_edge(row['iid'], row['pid'], weight=cost)
+
+    return G
+
+def draw_graph(G):
+    nx.draw(G, with_labels=True)
+    plt.show()
+
+def get_true_matches(g):
     nodes = list(g.nodes)
     matches = []
-    # graph_dict = g.adj.items()
     for node in nodes:
         for val in g.adj[node].items():
-            # print(node, val, g.adj[val[0]].items)
             items = list(g.adj[val[0]].items())
-            # print(node, val, items)
             if float(node) in [x[0] for x in items]:
                 matches.append((node,val[0]))
     matches2 = set(tuple(sorted(m)) for m in matches)
-    print(matches)
-    print(matches2)
+    return matches2
+
 if __name__ == '__main__':
     val_graph = create_validation_graph()
-    pair_match = is_match(val_graph)
+    test_graph = create_test_graph()
+    draw_graph(test_graph)
+    val_matches = get_true_matches(val_graph)
