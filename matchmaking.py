@@ -1,16 +1,17 @@
 import pandas as pd
 import networkx as nx
+from networkx.algorithms import bipartite
 import matplotlib.pyplot as plt
 import math
 
 def create_validation_graph():
     data = pd.read_csv("speeddating.csv", encoding="utf-8")
-    validation_subset = data[['iid', 'pid', 'dec']]
+    validation_subset = data[['iid', 'pid', 'gender', 'dec']]
     validation_subset = validation_subset.head(200)
 
     G = nx.DiGraph()
-    for i in range(1, 21):
-        G.add_node(i)
+    G.add_nodes_from(range(1, 11), bipartite=0, color="red")
+    G.add_nodes_from(range(11, 21), bipartite=1, color="blue")
 
     for index, row in validation_subset.iterrows():
         if (row['dec'] == 1):
@@ -57,5 +58,5 @@ def get_true_matches(g):
 if __name__ == '__main__':
     val_graph = create_validation_graph()
     test_graph = create_test_graph()
-    draw_graph(test_graph)
+    draw_graph(val_graph)
     val_matches = get_true_matches(val_graph)
