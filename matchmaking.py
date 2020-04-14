@@ -31,8 +31,9 @@ def is_match(g):
             # print(node, val, items)
             if float(node) in [x[0] for x in items]:
                 matches.append((node,val[0]))
-                
+    matches2 = set(tuple(sorted(m)) for m in matches)
     print(matches)
+    print(matches2)
 if __name__ == '__main__':
     val_graph = create_validation_graph()
-    is_match(val_graph)
+    pair_match = is_match(val_graph)
