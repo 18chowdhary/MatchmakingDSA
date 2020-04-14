@@ -29,12 +29,15 @@ def create_test_graph():
 
     for index, row in test_subset.iterrows():
         if (math.isnan(row['prob'])):
-            cost = 10
+            cost = 5
         else:
-            cost = 10 - int(row['prob'])
+            cost = int(row['prob'])
         G.add_edge(row['iid'], row['pid'], weight=cost)
 
     return G
+
+def hungarian_algorithm(G):
+    pass
 
 def draw_graph(G):
     nx.draw(G, with_labels=True)
