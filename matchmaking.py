@@ -3,6 +3,7 @@ import networkx as nx
 from networkx.algorithms import bipartite
 import matplotlib.pyplot as plt
 import math
+import numpy as np
 
 def create_validation_graph():
     data = pd.read_csv("speeddating.csv", encoding="utf-8")
@@ -32,23 +33,74 @@ def create_test_graph():
         if (math.isnan(row['prob'])):
             cost = 5
         else:
-            cost = int(row['prob'])
+            cost = 10-int(row['prob'])
         if cost <= 5:
             color = "g"
         else:
             color = "o"
         G.add_edge(row['iid'], row['pid'], weight=cost, edge_color=color)
 
-    print(nx.adjacency_matrix(G))
+    # print(nx.adjacency_matrix(G))
 
     return G
 
 def hungarian_algorithm(G):
     # create adjacency matrix using numpy
-    # find the minimum of each row & subtract that min from each row
-    # find the min of each col & subtract from each col
-    # check if all rows and all columns have at least 1 0
-    # if no, return to first
+    num_nodes = len(G.nodes())
+    adj_matrix = 10*np.ones([num_nodes, num_nodes])
+    for edge in list(G.edges()):
+        node_1 = int(edge[0]-1)
+        node_2 = int(edge[1]-1)
+        edge_weight = G.get_edge_data(*edge)['weight']
+        adj_matrix[node_1][node_2] = edge_weight
+
+    done = False
+    while not done:
+        # find the minimum of each row & subtract that min from each row
+        for i in range(num_nodes):
+            row = adj_matrix[i]
+            min_weight = np.min(row)
+            adj_matrix[i] = np.subtract(row, min_weight)
+
+        # find the min of each col & subtract from each col
+        for i in range(num_nodes):
+            col = adj_matrix[:, i]
+            # print(col)
+            min_weight = np.min(col)
+            adj_matrix[:,i] = np.subtract(col, min_weight)
+
+        zeros = []
+        # check if all rows and all columns have at least 1 0
+        row_done = True
+        for i in range(num_nodes):
+            row = adj_matrix[i]
+            count = 0
+            for j in range(len(row)):
+                if adj_matrix[i][j] == 0:
+                    count += 1
+                    zeros.append((i, j))
+            if count == 0:
+                row_done = False
+                break
+
+        col_done = True
+        for i in range(num_nodes):
+            col = adj_matrix[:, i]
+            count = 0
+            for j in range(len(col)):
+                if adj_matrix[i][j] == 0:
+                    count += 1
+                    zeros.append((j, i))
+            if count == 0:
+                col_done = False
+                break
+
+        if row_done and col_done:
+            done = True
+
+    # print(adj_matrix)
+    print(zeros)
+
     # otherwise, find the matchings so that only one selection per row & column
     pass
 
@@ -82,3 +134,4 @@ if __name__ == '__main__':
     test_graph = create_test_graph()
     # draw_graph(test_graph)
     val_matches = get_true_matches(val_graph)
+    hungarian_algorithm(test_graph)
