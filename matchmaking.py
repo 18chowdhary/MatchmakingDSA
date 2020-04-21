@@ -99,19 +99,42 @@ def hungarian_algorithm(G):
             done = True
 
     # print(adj_matrix)
-    print(zeros)
+    # print(zeros)
 
     # otherwise, find the matchings so that only one selection per row & column
     # create dictionary for rows and columns
+    matches = []
     rows = {}
     columns = {}
+    for i in range(0, int(len(zeros)/2)):
+        if zeros[i][0] not in rows:
+            rows[zeros[i][0]] = zeros[i][1]
+        elif type(rows[zeros[i][0]]) == list:
+            rows[zeros[i][0]].append(zeros[i][1])
+        else:
+            rows[zeros[i][0]] = [rows[zeros[i][0]], zeros[i][1]]
 
+    for j in range(int(len(zeros)/2), len(zeros)):
+        if zeros[j][0] not in columns:
+            columns[zeros[j][0]] = zeros[j][1]
+        elif type(columns[zeros[j][0]]) == list:
+            columns[zeros[j][0]].append(zeros[j][1])
+        else:
+            columns[zeros[j][0]] = [columns[zeros[j][0]], zeros[j][1]]
+
+    # print(len(zeros))
+    print(rows)
+    print(columns)
     # find where values overlap
     # put selested values in a list of tuples
     # loop through list and generate graph
-
-
-    pass
+    # for i in range(0, len(matches)):
+    #     h_matches = nx.Graph()
+    #     h_matches.add_edge(matches[i][0],matches[i][1])
+    #
+    # draw_graph(h_matches)
+    #
+    # pass
 
 def draw_graph(G):
     male, female = bipartite.sets(G)
