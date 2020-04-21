@@ -102,6 +102,15 @@ def hungarian_algorithm(G):
     print(zeros)
 
     # otherwise, find the matchings so that only one selection per row & column
+    # create dictionary for rows and columns
+    rows = {}
+    columns = {}
+
+    # find where values overlap
+    # put selested values in a list of tuples
+    # loop through list and generate graph
+
+
     pass
 
 def draw_graph(G):
