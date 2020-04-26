@@ -44,7 +44,7 @@ def create_test_graph():
 
     return G
 
-def hungarian_algorithm(G):
+def create_adj_matrix(G):
     # create adjacency matrix using numpy
     num_nodes = len(G.nodes())
     adj_matrix = 10*np.ones([num_nodes, num_nodes])
@@ -53,90 +53,226 @@ def hungarian_algorithm(G):
         node_2 = int(edge[1]-1)
         edge_weight = G.get_edge_data(*edge)['weight']
         adj_matrix[node_1][node_2] = edge_weight
+    return adj_matrix
 
-    done = False
-    while not done:
-        # find the minimum of each row & subtract that min from each row
-        for i in range(num_nodes):
-            row = adj_matrix[i]
-            min_weight = np.min(row)
-            adj_matrix[i] = np.subtract(row, min_weight)
+def step_one():
+    print("step one")
+    # find the minimum of each row & subtract that min from each row
+    num_nodes = len(test_graph.nodes())
+    for i in range(num_nodes):
+        row = adj_matrix[i]
+        min_weight = np.min(row)
+        adj_matrix[i] = np.subtract(row, min_weight)
 
-        # find the min of each col & subtract from each col
-        for i in range(num_nodes):
-            col = adj_matrix[:, i]
-            # print(col)
-            min_weight = np.min(col)
-            adj_matrix[:,i] = np.subtract(col, min_weight)
+    # find the min of each col & subtract from each col
+    for i in range(num_nodes):
+        col = adj_matrix[:, i]
+        # print(col)
+        min_weight = np.min(col)
+        adj_matrix[:,i] = np.subtract(col, min_weight)
 
-        zeros = []
-        # check if all rows and all columns have at least 1 0
-        row_done = True
-        for i in range(num_nodes):
-            row = adj_matrix[i]
-            count = 0
-            for j in range(len(row)):
-                if adj_matrix[i][j] == 0:
-                    count += 1
-                    zeros.append((i, j))
-            if count == 0:
-                row_done = False
+    step_two()
+
+def step_two():
+    print("step two")
+    dims = adj_matrix.shape
+    global mask_matrix
+    global row_cover
+    global col_cover
+
+    mask_matrix = np.zeros(dims)
+    row_cover = np.zeros((1, dims[1]))
+    col_cover = np.zeros((dims[0], 1))
+
+    for i in range(0, dims[0]):
+        for j in range(0, dims[1]):
+            if (adj_matrix[i][j] == 0 and row_cover[0][i] == 0 and col_cover[j][0] == 0):
+                mask_matrix[i][j] = 1;
+                row_cover[i] = 1;
+                col_cover[i] = 1;
+
+    row_cover = np.zeros((1, dims[1]))
+    col_cover = np.zeros((dims[0], 1))
+
+    step_three()
+
+def step_three():
+    print("step three")
+    dims = mask_matrix.shape
+    col_count = 0
+    for c in range(0, dims[1]):
+        if (col_cover[c][0] == 1):
+            col_count += 1
+
+    print('col_count before covering:', col_count)
+
+    for i in range(0, dims[0]):
+        for j in range(0, dims[1]):
+            if (mask_matrix[i][j] == 1):
+                col_cover[j] = 1;
+
+    col_count = 0
+    for c in range(0, dims[1]):
+        if (col_cover[c][0] == 1):
+            col_count += 1
+
+    print('col_count:', col_count)
+    if (col_count >= dims[0] or col_count >= dims[1]):
+        step_seven()
+    else:
+        step_four()
+        return
+
+def find_a_zero(row, col):
+    print("find a zero")
+    dims = adj_matrix.shape
+    for r in range(0, dims[0]):
+        for c in range(0, dims[1]):
+            if (adj_matrix[r][c] == 0 and row_cover[0][r] == 0 and col_cover[c][0] == 0):
+                row = r
+                col = c
                 break
+    return row, col
 
-        col_done = True
-        for i in range(num_nodes):
-            col = adj_matrix[:, i]
-            count = 0
-            for j in range(len(col)):
-                if adj_matrix[i][j] == 0:
-                    count += 1
-                    zeros.append((j, i))
-            if count == 0:
-                col_done = False
-                break
+def star_in_row(row):
+    print('star in row')
+    dims = mask_matrix.shape
+    for c in range(0, dims[1]):
+        if mask_matrix[row][c] == 1:
+            return c
+    return -1
 
-        if row_done and col_done:
-            done = True
-
-    # print(adj_matrix)
-    # print(zeros)
-
-    # otherwise, find the matchings so that only one selection per row & column
-    # create dictionary for rows and columns
-    matches = []
-    rows = {}
-    columns = {}
-    for i in range(0, int(len(zeros)/2)):
-        if zeros[i][0] not in rows:
-            rows[zeros[i][0]] = zeros[i][1]
-        elif type(rows[zeros[i][0]]) == list:
-            rows[zeros[i][0]].append(zeros[i][1])
+def step_four():
+    print("step four")
+    # go through the mask
+    # find an uncovered zero
+    # if you do not find a zero, then you're done with this step -> step 6
+    # otherwise, prime the zero that you found
+    # with that zero, check if there is a starred zero in the same row
+    # if there is a starred zero, cover the row and uncover the column of the starred zero
+    # otherwise, move onto step 5
+    row = -1
+    col = -1
+    four_done = False
+    while (not four_done):
+        print(row, col)
+        row, col = find_a_zero(row, col)
+        if (row == -1):
+            four_done = True
+            step_six()
+            return
         else:
-            rows[zeros[i][0]] = [rows[zeros[i][0]], zeros[i][1]]
+            mask_matrix[row][col] = 2
+            star_col = star_in_row(row)
+            print("star_col:", star_col)
+            if (star_col >= 0):
+                row_cover[0][row] = 1
+                col_cover[star_col][0] = 0
+                col = star_col
+            else:
+                four_done = True
+                step_five(row, col)
+                return
 
-    for j in range(int(len(zeros)/2), len(zeros)):
-        if zeros[j][0] not in columns:
-            columns[zeros[j][0]] = zeros[j][1]
-        elif type(columns[zeros[j][0]]) == list:
-            columns[zeros[j][0]].append(zeros[j][1])
+def find_star_in_col(c):
+    print("find star in col")
+    dims = mask_matrix.shape
+    for r in range(0, dims[0]):
+        if mask_matrix[r][c] == 1:
+            return r
+    return -1
+
+def find_prime_in_row(row):
+    print("find prime in row")
+    dims = mask_matrix.shape
+    for c in range(0, dims[1]):
+        if mask_matrix[row][c] == 2:
+            return c
+    return -1
+
+def augment_path(path):
+    print("augment path")
+    for point in path:
+        row = point[0]
+        col = point[1]
+        if (mask_matrix[row][col] == 1):
+            mask_matrix[row][col] = 0
         else:
-            columns[zeros[j][0]] = [columns[zeros[j][0]], zeros[j][1]]
+            mask_matrix[row][col] = 1
 
-    # print(len(zeros))
-    print(rows)
-    print(columns)
-    # find where values overlap
-    # put selested values in a list of tuples
-    # loop through list and generate graph
-    # for i in range(0, len(matches)):
-    #     h_matches = nx.Graph()
-    #     h_matches.add_edge(matches[i][0],matches[i][1])
-    #
-    # draw_graph(h_matches)
-    #
-    # pass
+def erase_primes():
+    print("erase primes")
+    dims = mask_matrix.shape
+    for r in range(0, dims[0]):
+        for c in range(0, dims[1]):
+            if (mask_matrix[r][c] == 2):
+                mask_matrix[r][c] = 0
 
-def draw_graph(G):
+def step_five(row, col):
+    print("step five")
+    dims = mask_matrix.shape
+    five_done = False
+    r = -1
+    c = -1
+
+    path_count = 1
+    path = [(row, col)]
+
+    while (not five_done):
+        star_row = find_star_in_col(path[path_count-1][1])
+        if (star_row > -1):
+            path_count += 1
+            path.append((star_row, path[path_count-2][1]))
+        else:
+            break
+
+        prime_col = find_prime_in_row(path[path_count-1][0])
+        path_count += 1
+        path.append((path[path_count-2][0], prime_col))
+
+    augment_path(path)
+    row_cover = np.zeros((1, dims[1]))
+    col_cover = np.zeros((dims[0], 1))
+    erase_primes()
+    step_three()
+
+def find_minimum():
+    dims = adj_matrix.shape
+    min = math.inf
+    for r in range(0, dims[0]):
+        for c in range(0, dims[1]):
+            if (row_cover[0][r] == 0 and col_cover[c][0] == 0):
+                if (adj_matrix[r][c] < min):
+                    min = adj_matrix[r][c]
+
+    return min
+
+def step_six():
+    print("step six")
+    min = find_minimum()
+    print("min:")
+    dims = mask_matrix.shape
+    for r in range(0, dims[0]):
+        for c in range(0, dims[1]):
+            if (row_cover[0][r] == 1):
+                adj_matrix[r][c] += min
+            else:
+                adj_matrix[r][c] -= min
+    step_four()
+
+def step_seven():
+    global h_matches
+    h_matches = []
+    dims = mask_matrix.shape
+    for r in range(0, dims[0]):
+        for c in range(0, dims[1]):
+            if mask_matrix[r][c] == 1:
+                h_matches.append((r+1, c+1))
+
+def hungarian_algorithm():
+    step_one()
+
+def draw_bipartite_graph(G):
     male, female = bipartite.sets(G)
     pos = dict()
     pos.update((n, (1, i)) for i, n in enumerate(male))
@@ -150,6 +286,10 @@ def draw_graph(G):
     nx.draw(G, node_color=color_map, with_labels=True, pos=pos)
     plt.show()
 
+def draw_graph(G):
+    nx.draw(G, with_labels=True)
+    plt.show()
+
 def get_true_matches(g):
     nodes = list(g.nodes)
     matches = []
@@ -161,9 +301,26 @@ def get_true_matches(g):
     matches2 = set(tuple(sorted(m)) for m in matches)
     return matches2
 
+def create_hungarian_graph():
+    G = nx.DiGraph()
+    # G.add_nodes_from(range(1, 11), bipartite=0)
+    # G.add_nodes_from(range(11, 21), bipartite=1)
+
+    for match in h_matches:
+        G.add_edge(match[0], match[1])
+    return G
+
 if __name__ == '__main__':
     val_graph = create_validation_graph()
+    global test_graph
     test_graph = create_test_graph()
     # draw_graph(test_graph)
     val_matches = get_true_matches(val_graph)
-    hungarian_algorithm(test_graph)
+
+    global adj_matrix
+    adj_matrix = create_adj_matrix(test_graph)
+    hungarian_algorithm()
+    hungarian_graph = create_hungarian_graph()
+    draw_graph(hungarian_graph)
+    print(val_matches)
+    print(h_matches)
