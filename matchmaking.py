@@ -321,6 +321,6 @@ if __name__ == '__main__':
     adj_matrix = create_adj_matrix(test_graph)
     hungarian_algorithm()
     hungarian_graph = create_hungarian_graph()
-    draw_graph(hungarian_graph)
     print(val_matches)
     print(h_matches)
+    draw_graph(hungarian_graph)
