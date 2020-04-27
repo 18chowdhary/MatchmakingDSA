@@ -265,7 +265,7 @@ def step_seven():
     h_matches = []
     dims = mask_matrix.shape
     for r in range(0, dims[0]):
-        for c in range(0, dims[1]):
+        for c in range(r, dims[1]):
             if mask_matrix[r][c] == 1:
                 h_matches.append((r+1, c+1))
 
@@ -293,20 +293,22 @@ def draw_graph(G):
 def get_true_matches(g):
     nodes = list(g.nodes)
     matches = []
+    print(g.adj)
     for node in nodes:
         for val in g.adj[node].items():
             items = list(g.adj[val[0]].items())
             if float(node) in [x[0] for x in items]:
-                matches.append((node,val[0]))
+                if node not in matches:
+                    matches.append((node,val[0]))
+                else:
+                    continue
     matches2 = set(tuple(sorted(m)) for m in matches)
     return matches2
 
-def create_hungarian_graph():
+def create_hungarian_graph(matches):
     G = nx.DiGraph()
-    # G.add_nodes_from(range(1, 11), bipartite=0)
-    # G.add_nodes_from(range(11, 21), bipartite=1)
 
-    for match in h_matches:
+    for match in matches:
         G.add_edge(match[0], match[1])
     return G
 
@@ -314,13 +316,14 @@ if __name__ == '__main__':
     val_graph = create_validation_graph()
     global test_graph
     test_graph = create_test_graph()
-    # draw_graph(test_graph)
     val_matches = get_true_matches(val_graph)
 
     global adj_matrix
     adj_matrix = create_adj_matrix(test_graph)
     hungarian_algorithm()
-    hungarian_graph = create_hungarian_graph()
+    hungarian_graph = create_hungarian_graph(h_matches)
+    validation = create_hungarian_graph(val_matches)
     print(val_matches)
     print(h_matches)
     draw_graph(hungarian_graph)
+    draw_graph(validation)
