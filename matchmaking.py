@@ -5,44 +5,6 @@ import matplotlib.pyplot as plt
 import math
 import numpy as np
 
-def create_validation_graph():
-    data = pd.read_csv("speeddating.csv", encoding="utf-8")
-    validation_subset = data[['iid', 'pid', 'gender', 'dec']]
-    validation_subset = validation_subset.head(200)
-
-    G = nx.DiGraph()
-    G.add_nodes_from(range(1, 11), bipartite=0)
-    G.add_nodes_from(range(11, 21), bipartite=1)
-
-    for index, row in validation_subset.iterrows():
-        if (row['dec'] == 1):
-            G.add_edge(row['iid'], row['pid'])
-
-    return G
-
-def create_test_graph():
-    data = pd.read_csv("speeddating.csv", encoding="utf-8")
-    test_subset = data[['iid', 'pid', 'prob']]
-    test_subset = test_subset.head(200)
-
-    G = nx.DiGraph()
-    G.add_nodes_from(range(1, 11), bipartite=0)
-    G.add_nodes_from(range(11, 21), bipartite=1)
-
-    for index, row in test_subset.iterrows():
-        if (math.isnan(row['prob'])):
-            cost = 5
-        else:
-            cost = 10-int(row['prob'])
-        if cost <= 5:
-            color = "g"
-        else:
-            color = "o"
-        G.add_edge(row['iid'], row['pid'], weight=cost, edge_color=color)
-
-    # print(nx.adjacency_matrix(G))
-
-    return G
 
 def create_adj_matrix(G):
     # create adjacency matrix using numpy
@@ -272,8 +234,59 @@ def step_seven():
 def hungarian_algorithm():
     step_one()
 
+def create_val_input_graph():
+    data = pd.read_csv("speeddating.csv", encoding="utf-8")
+    validation_subset = data[['iid', 'pid', 'gender', 'dec']]
+    validation_subset = validation_subset.head(200)
+
+    G = nx.DiGraph()
+    G.add_nodes_from(range(1, 11), bipartite=0)
+    G.add_nodes_from(range(11, 21), bipartite=1)
+
+    for index, row in validation_subset.iterrows():
+        if (row['dec'] == 1):
+            G.add_edge(row['iid'], row['pid'])
+
+    return G
+
+def create_test_graph():
+    data = pd.read_csv("speeddating.csv", encoding="utf-8")
+    test_subset = data[['iid', 'pid', 'prob']]
+    test_subset = test_subset.head(200)
+
+    G = nx.DiGraph()
+    G.add_nodes_from(range(1, 11), bipartite=0)
+    G.add_nodes_from(range(11, 21), bipartite=1)
+
+    for index, row in test_subset.iterrows():
+        if (math.isnan(row['prob'])):
+            cost = 5
+        else:
+            cost = 10-int(row['prob'])
+        if cost <= 5:
+            color = "g"
+        else:
+            color = "o"
+        G.add_edge(row['iid'], row['pid'], weight=cost, edge_color=color)
+
+    return G
+
+def create_matches_graph(matches):
+    G = nx.DiGraph()
+    G.add_nodes_from(range(1, 11), bipartite=0)
+    G.add_nodes_from(range(11, 21), bipartite=1)
+
+    for match in matches:
+        G.add_edge(match[0], match[1])
+    return G
+
+def draw_graph(G):
+    nx.draw(G, with_labels=True)
+    plt.show()
+
 def draw_bipartite_graph(G):
     male, female = bipartite.sets(G)
+    print(male, female)
     pos = dict()
     pos.update((n, (1, i)) for i, n in enumerate(male))
     pos.update((n, (2, i)) for i, n in enumerate(female))
@@ -286,10 +299,6 @@ def draw_bipartite_graph(G):
     nx.draw(G, node_color=color_map, with_labels=True, pos=pos)
     plt.show()
 
-def draw_graph(G):
-    nx.draw(G, with_labels=True)
-    plt.show()
-
 def get_true_matches(g):
     nodes = list(g.nodes)
     matches = []
@@ -298,32 +307,26 @@ def get_true_matches(g):
         for val in g.adj[node].items():
             items = list(g.adj[val[0]].items())
             if float(node) in [x[0] for x in items]:
-                if node not in matches:
-                    matches.append((node,val[0]))
-                else:
-                    continue
+                matches.append((node,val[0]))
     matches2 = set(tuple(sorted(m)) for m in matches)
     return matches2
 
-def create_hungarian_graph(matches):
-    G = nx.DiGraph()
-
-    for match in matches:
-        G.add_edge(match[0], match[1])
-    return G
-
 if __name__ == '__main__':
-    val_graph = create_validation_graph()
+    input_graph = create_val_input_graph()
+    draw_bipartite_graph(input_graph)
+    val_matches = get_true_matches(input_graph)
+
     global test_graph
     test_graph = create_test_graph()
-    val_matches = get_true_matches(val_graph)
-
     global adj_matrix
     adj_matrix = create_adj_matrix(test_graph)
     hungarian_algorithm()
-    hungarian_graph = create_hungarian_graph(h_matches)
-    validation = create_hungarian_graph(val_matches)
+
+    hungarian_graph = create_matches_graph(h_matches)
+    validation = create_matches_graph(val_matches)
+
     print(val_matches)
     print(h_matches)
+
     draw_graph(hungarian_graph)
     draw_graph(validation)
